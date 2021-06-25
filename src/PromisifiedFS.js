@@ -5,7 +5,11 @@ const path = require("./path.js");
 
 function cleanParamsFilepathOpts(filepath, opts, ...rest) {
   // normalize paths
-  filepath = path.normalize(filepath);
+  if (Array.isArray(filepath)) {
+    filepath = filepath.map(p => path.normalize(p));
+  } else {
+    filepath = path.normalize(filepath);
+  }
   // strip out callbacks
   if (typeof opts === "undefined" || typeof opts === "function") {
     opts = {};
@@ -44,6 +48,7 @@ module.exports = class PromisifiedFS {
   constructor(name, options = {}) {
     this.init = this.init.bind(this)
     this.readFile = this._wrap(this.readFile, cleanParamsFilepathOpts, false)
+    this.readFiles = this._wrap(this.readFiles, cleanParamsFilepathOpts, false)
     this.writeFile = this._wrap(this.writeFile, cleanParamsFilepathDataOpts, true)
     this.unlink = this._wrap(this.unlink, cleanParamsFilepathOpts, true)
     this.readdir = this._wrap(this.readdir, cleanParamsFilepathOpts, false)
@@ -152,6 +157,9 @@ module.exports = class PromisifiedFS {
   }
   async readFile(filepath, opts) {
     return this._backend.readFile(filepath, opts);
+  }
+  async readFiles(filepaths, opts) {
+    return this._backend.readFiles(filepaths, opts);
   }
   async writeFile(filepath, data, opts) {
     await this._backend.writeFile(filepath, data, opts);

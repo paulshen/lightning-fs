@@ -123,6 +123,33 @@ module.exports = class DefaultBackend {
     if (!stat) throw new ENOENT(filepath)
     return data;
   }
+  async readFiles(filepaths, opts) {
+    const { encoding } = opts;
+    if (encoding && encoding !== 'utf8') throw new Error('Only "utf8" encoding is supported in readFile');
+    let stats = filepaths.map(filepath => this._cache.stat(filepath))
+    if (stats.some(stat => !stat)) {
+      throw new ENOENT()
+    }
+    let data = await this._idb.readFiles(stats.map(stat => stat.ino))
+    if (data.some(datum => !datum)) {
+      throw new ENOENT()
+    }
+    if (!data && this._http) {
+      throw new Error('not supported');
+    }
+    await Promise.all(stats.map(async (stat, i) => {
+      const datum = data[i];
+      if (stat.size != datum.byteLength) {
+        stat = await this._writeStat(filepath, datum.byteLength, { mode: stat ? stat.mode : 0o666 })
+        this.saveSuperblock() // debounced
+      }
+    }))
+    if (encoding === "utf8") {
+      data = data.map(datum => decode(datum));
+    }
+    if (stats.some(stat => !stat)) throw new ENOENT(filepaths)
+    return data;
+  }
   async writeFile(filepath, data, opts) {
     const { mode, encoding = "utf8" } = opts;
     if (typeof data === "string") {

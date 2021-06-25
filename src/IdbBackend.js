@@ -15,6 +15,9 @@ module.exports = class IdbBackend {
   readFile(inode) {
     return idb.get(inode, this._store)
   }
+  readFiles(inodes) {
+    return idb.getMany(inodes, this._store)
+  }
   writeFile(inode, data) {
     return idb.set(inode, data, this._store)
   }

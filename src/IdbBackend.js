@@ -4,7 +4,7 @@ module.exports = class IdbBackend {
   constructor(dbname, storename) {
     this._database = dbname;
     this._storename = storename;
-    this._store = new idb.Store(this._database, this._storename);
+    this._store = idb.createStore(this._database, this._storename);
   }
   saveSuperblock(superblock) {
     return idb.set("!root", superblock, this._store);

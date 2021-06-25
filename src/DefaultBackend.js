@@ -161,12 +161,39 @@ module.exports = class DefaultBackend {
     const stat = await this._cache.writeStat(filepath, data.byteLength, { mode });
     await this._idb.writeFile(stat.ino, data)
   }
+  async writeFiles(files, opts) {
+    const { mode, encoding = "utf8" } = opts;
+    files = files.map(([filepath, data]) => {
+      if (typeof data === "string") {
+        if (encoding !== "utf8") {
+          throw new Error('Only "utf8" encoding is supported in writeFile');
+        }
+        return [filepath, encode(data)];
+      }
+      return [filepath, data];
+    });
+    const stats = await Promise.all(files.map(([filepath, data]) =>
+      this._cache.writeStat(filepath, data.byteLength, { mode })
+    ));
+    await this._idb.writeFiles(stats.map((stat, i) => [stat.ino, files[i][1]]))
+  }
   async unlink(filepath, opts) {
     const stat = this._cache.lstat(filepath);
     this._cache.unlink(filepath);
     if (stat.type !== 'symlink') {
       await this._idb.unlink(stat.ino)
     }
+  }
+  async unlinkMulti(filepaths, opts) {
+    const stats = [];
+    filepaths.forEach(filepath => {
+      stats.push(this._cache.lstat(filepath));
+      this._cache.unlink(filepath);
+    });
+    await this._idb.unlinkMulti(
+      stats.filter(stat => stat.type !== 'symlink')
+        .map(stat => stat.ino)
+    );
   }
   readdir(filepath, opts) {
     return this._cache.readdir(filepath);

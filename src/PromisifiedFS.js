@@ -39,6 +39,22 @@ function cleanParamsFilepathDataOpts(filepath, data, opts, ...rest) {
   return [filepath, data, opts, ...rest];
 }
 
+function cleanParamsFilepathArrayOpts(files, opts, ...rest) {
+  // normalize paths
+  files = files.map(([filepath, data]) => [path.normalize(filepath), data]);
+  // strip out callbacks
+  if (typeof opts === "undefined" || typeof opts === "function") {
+    opts = {};
+  }
+  // expand string options to encoding options
+  if (typeof opts === "string") {
+    opts = {
+      encoding: opts,
+    };
+  }
+  return [files, opts, ...rest];
+}
+
 function cleanParamsFilepathFilepath(oldFilepath, newFilepath, ...rest) {
   // normalize paths
   return [path.normalize(oldFilepath), path.normalize(newFilepath), ...rest];
@@ -50,7 +66,9 @@ module.exports = class PromisifiedFS {
     this.readFile = this._wrap(this.readFile, cleanParamsFilepathOpts, false)
     this.readFiles = this._wrap(this.readFiles, cleanParamsFilepathOpts, false)
     this.writeFile = this._wrap(this.writeFile, cleanParamsFilepathDataOpts, true)
+    this.writeFiles = this._wrap(this.writeFiles, cleanParamsFilepathArrayOpts, true)
     this.unlink = this._wrap(this.unlink, cleanParamsFilepathOpts, true)
+    this.unlinkMulti = this._wrap(this.unlinkMulti, cleanParamsFilepathOpts, true)
     this.readdir = this._wrap(this.readdir, cleanParamsFilepathOpts, false)
     this.mkdir = this._wrap(this.mkdir, cleanParamsFilepathOpts, true)
     this.rmdir = this._wrap(this.rmdir, cleanParamsFilepathOpts, true)
@@ -165,8 +183,16 @@ module.exports = class PromisifiedFS {
     await this._backend.writeFile(filepath, data, opts);
     return null
   }
+  async writeFiles(fileArray, opts) {
+    await this._backend.writeFiles(fileArray, opts);
+    return null
+  }
   async unlink(filepath, opts) {
     await this._backend.unlink(filepath, opts);
+    return null
+  }
+  async unlinkMulti(filepaths, opts) {
+    await this._backend.unlinkMulti(filepaths, opts);
     return null
   }
   async readdir(filepath, opts) {

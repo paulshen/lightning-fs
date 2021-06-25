@@ -21,8 +21,14 @@ module.exports = class IdbBackend {
   writeFile(inode, data) {
     return idb.set(inode, data, this._store)
   }
+  writeFiles(inodes) {
+    return idb.setMany(inodes, this._store)
+  }
   unlink(inode) {
     return idb.del(inode, this._store)
+  }
+  unlinkMulti(inodes) {
+    return idb.delMany(inodes, this._store)
   }
   wipe() {
     return idb.clear(this._store)
